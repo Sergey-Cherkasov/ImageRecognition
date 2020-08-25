@@ -1,3 +1,7 @@
+/*
+* Copyright by Sergey Cherkasov (c) 2020
+* */
+
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
