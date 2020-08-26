@@ -70,7 +70,6 @@ public class Main {
 
    /**
     * Метод возращает строку с описанием достоинства и масти распознанных карт на изображении
-    * @author Sergey Cherkasov
     */
    private static String recognitionCards(File sourceFile,
                                           Map<String, BufferedImage> mapTemplatesRanks,
@@ -118,7 +117,6 @@ public class Main {
 
    /**
     * Метод возвращает строку с указанием на достоинство/масть карты
-    * @author Sergey Cherkasov
     */
    private static String imageCompare(BufferedImage sourceImage, Map<String, BufferedImage> mapTemplates) {
       int numberBestPixels = 0;
@@ -142,7 +140,6 @@ public class Main {
    /**
     * Метод по пиксельно сравнивает изображение и шаблон и возвращает количество
     * полезных пикселей
-    * @author Sergey Cherkasov
     */
    private static int pixelCompare(BufferedImage source, BufferedImage template) {
       int width = template.getWidth();
