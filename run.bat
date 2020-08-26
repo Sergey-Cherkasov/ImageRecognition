@@ -3,13 +3,13 @@ chcp 65001
 
 set DIRECTORY=%~dp0
 echo %DIRECTORY%
-#cd /d "d:\ImageRecognition"
 
 if "%1" equ "" goto prompt_path
 set SOURCE_PATH=%1
 
 :run_programm
-java -classpath %CD%"\image_recognition\bin" Main %SOURCE_PATH%
+javac -d %DIRECTORY%bin %DIRECTORY%\src\main\java\*
+java -classpath %DIRECTORY%bin Main %SOURCE_PATH%
 pause
 goto exit
 
