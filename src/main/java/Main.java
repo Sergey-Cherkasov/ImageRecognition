@@ -1,38 +1,43 @@
-/*
-* Copyright by Sergey Cherkasov (c) 2020
-* */
-
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.stream.Stream;
 
 public class Main {
 
-   public static void main(String[] args) throws IOException {
-      start(args);
-   }
+   static int numberAllFiles;
+   static int numberNotRecognizedFiles;
 
-   private static void start(String[] args) throws IOException {
+   public static void main(String[] args) throws IOException {
       String sourceImagesPath = "";
       if (args.length != 0){
          sourceImagesPath = args[0];
       } else {
-         System.out.printf("Не указан путь до размещения файлов!%n");
+         System.out.println("Не указан путь до размещения файлов с изображениями!");
          System.exit(0);
       }
+      start(sourceImagesPath);
+   }
+
+   private static void start(String path) throws IOException {
       long timeStart = System.currentTimeMillis();
       File dirTemplatesRanks = new File(Constants.TEMPLATES_IMAGES_PATH_RANKS);
+      if (!dirTemplatesRanks.exists()) {
+         System.out.println("Отсутствует каталог с шаблонами");
+         return;
+      }
       File[] filesTemplateRanks = dirTemplatesRanks.listFiles();
-
       if (filesTemplateRanks == null) {
          System.out.println("Отсутствуют шаблоны достоинств карт: " + dirTemplatesRanks.getPath());
          return;
       }
       Map<String, BufferedImage> mapTemplatesRanks = fillTemplatesMap(filesTemplateRanks);
+
       File dirTemplatesSuits = new File(Constants.TEMPLATES_IMAGES_PATH_SUITS);
       File[] filesTemplatesSuits = dirTemplatesSuits.listFiles();
       if (filesTemplatesSuits == null) {
@@ -40,49 +45,51 @@ public class Main {
          return;
       }
       Map<String, BufferedImage> mapTemplatesSuits = fillTemplatesMap(filesTemplatesSuits);
-      System.out.println(sourceImagesPath);
 
-      int numberAllFiles = 0;
-      int notRecognizedFiles = 0;
-      File sourceDir = new File(sourceImagesPath);
+      File sourceDir = new File(path);
       File[] sourceFiles = sourceDir.listFiles();
-
       if (sourceFiles == null) {
          System.out.println("Отсутствуют изображения для распознавания в " + sourceDir.getPath());
          return;
       }
-
-      for (File sourceFile : sourceFiles) {
-         if (!sourceFile.isFile()) {
-            continue;
-         }
-         numberAllFiles++;
-         BufferedImage image = ImageIO.read(sourceFile);
-         ImagesUtils.convertGrayscaleToBinary(image);
-         String result = recognitionCards(sourceFile, mapTemplatesRanks, mapTemplatesSuits);
-         if (result.matches(".*[?].*")) {
-            notRecognizedFiles++;
-         }
-         System.out.printf("%s - %s%n", sourceFile.getName(), result);
-      }
+      Stream<String> resultStrings = Arrays.stream(sourceFiles).filter(File::isFile)
+              .map((sourceFile) -> recognitionCards(sourceFile, mapTemplatesRanks, mapTemplatesSuits));
+      resultStrings.forEach((System.out::println));
 
       long timeEnd = System.currentTimeMillis();
       int seconds = (int) (timeEnd - timeStart) / 1000;
       int minutes = seconds / 60;
       int hours = minutes / 60;
-      System.out.println("Общее количество карт: " + numberAllFiles);
-      System.out.println("Количество не распознанных карт: " + notRecognizedFiles);
-      System.out.printf("Коэффициент не распознавания карт: %f%n", notRecognizedFiles / (double) numberAllFiles);
+      System.out.println("Общее количество файлов: " + numberAllFiles);
+      System.out.println("Количество не распознанных файлов: " + numberNotRecognizedFiles);
+      System.out.printf("Коэффициент не распознавания файлов: %f%n", numberNotRecognizedFiles / (double) numberAllFiles);
       System.out.printf("Время затраченное на распознавание всех файлов: %d:%d:%d%n", hours, minutes, seconds);
-      System.out.printf("Усредненное время, затраченное на распознавание одной карты: %d:%d:%d%n",
+      System.out.printf("Усредненное время, затраченное на распознавание одного файла: %d:%d:%d%n",
               hours / numberAllFiles, minutes / numberAllFiles, seconds / numberAllFiles);
    }
 
+   /**
+    * Метод возращает строку с описанием достоинства и масти распознанных карт на изображении
+    * @author Sergey Cherkasov
+    */
    private static String recognitionCards(File sourceFile,
                                           Map<String, BufferedImage> mapTemplatesRanks,
-                                          Map<String, BufferedImage> mapTemplatesSuits) throws IOException {
-      StringBuilder resultString = new StringBuilder();
-      BufferedImage sourceImage = ImageIO.read(sourceFile);
+                                          Map<String, BufferedImage> mapTemplatesSuits) {
+      numberAllFiles++;
+      BufferedImage sourceImage = null;
+      try {
+         sourceImage = ImageIO.read(sourceFile);
+         if (sourceImage == null) {
+            System.out.printf("Файл %s не содержит изображение%n", sourceFile.getName());
+            return "";
+         } else if (sourceImage.getHeight() != Constants.IMAGE_HEIGHT || sourceImage.getWidth() != Constants.IMAGE_WIDTH) {
+            System.out.println("Не верный размер изображения: " + sourceFile.getName());
+            return "";
+         }
+      } catch (IOException e) {
+         e.printStackTrace();
+      }
+      StringBuilder stringBuilder = new StringBuilder();
       String rank;
       String suit;
       for (int cardStartPoint : Constants.ARRAY_CARD_START_POINTS_X) {
@@ -100,11 +107,19 @@ public class Main {
          sourceImageSuitZone = ImagesUtils.convertGrayscaleToBinary(sourceImageSuitZone);
          rank = imageCompare(sourceImageRankZone, mapTemplatesRanks);
          suit = imageCompare(sourceImageSuitZone, mapTemplatesSuits);
-         resultString.append(String.format("%s%s", rank, suit));
+         stringBuilder.append(String.format("%s%s", rank, suit));
       }
-      return resultString.toString().replaceFirst("[?][?]+$","");
+      String resultString = stringBuilder.toString().replaceFirst("[?][?]+$","");
+      if (resultString.matches(".*[?].*")) {
+         numberNotRecognizedFiles++;
+      }
+      return String.format("%s - %s", sourceFile.getName(), resultString);
    }
 
+   /**
+    * Метод возвращает строку с указанием на достоинство/масть карты
+    * @author Sergey Cherkasov
+    */
    private static String imageCompare(BufferedImage sourceImage, Map<String, BufferedImage> mapTemplates) {
       int numberBestPixels = 0;
       String rankSuit = "";
@@ -124,7 +139,11 @@ public class Main {
       return rankSuit.equals("")? "?": rankSuit;
    }
 
-   /* Метод по пиксельно сравнивает изображение и шаблон и возвращает true или false */
+   /**
+    * Метод по пиксельно сравнивает изображение и шаблон и возвращает количество
+    * полезных пикселей
+    * @author Sergey Cherkasov
+    */
    private static int pixelCompare(BufferedImage source, BufferedImage template) {
       int width = template.getWidth();
       int height = template.getHeight();
@@ -140,7 +159,7 @@ public class Main {
    }
 
    private static Map<String, BufferedImage> fillTemplatesMap(File[] filesTemplateRanks) throws IOException {
-      Map<String, BufferedImage> mapTemplates = new HashMap<String, BufferedImage>();
+      Map<String, BufferedImage> mapTemplates = new HashMap<>();
       for (File file : filesTemplateRanks) {
          mapTemplates.put(file.getName().replaceFirst("[.][^.]+$", ""), ImageIO.read(file));
       }

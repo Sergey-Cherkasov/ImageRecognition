@@ -2,6 +2,10 @@ public class Constants {
    // Пути до места расположения шаблонов изображений
    public static final String TEMPLATES_IMAGES_PATH_RANKS = "D:/ImageRecognition/image_recognition/templates/ranks";
    public static final String TEMPLATES_IMAGES_PATH_SUITS = "D:/ImageRecognition/image_recognition/templates/suits";
+   // Высота изображения
+   public static final int IMAGE_HEIGHT = 1166;
+   // Ширина изображения
+   public static final int IMAGE_WIDTH = 636;
    // Координаты начала расположения карт
    public static final int[] ARRAY_CARD_START_POINTS_X = {143, 215, 287, 359, 431};
    public static final int CARD_START_POINT_Y = 586;
